@@ -8,7 +8,7 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   appName: "Gera-servicos",
-  appSlug: "gera-mobile",
+  appSlug: "cleanpro-mobile",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
   logoUrl: "",
