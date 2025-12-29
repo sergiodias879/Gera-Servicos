@@ -1,10 +1,12 @@
-import { View, Pressable, ScrollView, Switch } from "react-native";
+import { View, Pressable, ScrollView, Switch, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { ThemedText } from "@/components/themed-text";
 import { Card } from "@/components/ui/card";
 import { useColors } from "@/hooks/use-colors";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/hooks/use-auth";
+import { useThemeContext } from "@/lib/theme-provider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 
 const menuItems = [
@@ -42,8 +44,32 @@ const menuItems = [
 
 export default function MoreScreen() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const [darkMode, setDarkMode] = useState(colorScheme === "dark");
+  const { user, logout, loading: authLoading } = useAuth();
+  const { setColorScheme, colorScheme } = useThemeContext();
+  const toggleTheme = () => {
+    setColorScheme(colorScheme === "dark" ? "light" : "dark");
+  };
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (confirm("Tem certeza que deseja sair?")) {
+      try {
+        setIsLoggingOut(true);
+        await logout();
+        router.replace("/oauth/callback");
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+        alert("Erro ao fazer logout");
+      } finally {
+        setIsLoggingOut(false);
+      }
+    }
+  };
+
+  const handleMenuItemPress = (itemId: string) => {
+    console.log("Menu item pressed:", itemId);
+  };
 
   const renderMenuItem = (item: any) => (
     <Pressable
@@ -53,9 +79,7 @@ export default function MoreScreen() {
           opacity: pressed ? 0.7 : 1,
         },
       ]}
-      onPress={() => {
-        // TODO: Navigate to respective screens
-      }}
+      onPress={() => handleMenuItemPress(item.id)}
     >
       <Card
         style={{
@@ -76,7 +100,7 @@ export default function MoreScreen() {
               alignItems: "center",
             }}
           >
-            <MaterialIcons name={item.icon} size={24} color={colors.primary} />
+            <MaterialIcons name={item.icon as any} size={24} color={colors.primary} />
           </View>
           <View style={{ flex: 1 }}>
             <ThemedText type="defaultSemiBold" style={{ marginBottom: 2 }}>
@@ -92,6 +116,14 @@ export default function MoreScreen() {
     </Pressable>
   );
 
+  if (authLoading) {
+    return (
+      <ScreenContainer className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary} />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer className="flex-1">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -106,46 +138,48 @@ export default function MoreScreen() {
         </View>
 
         {/* Profile Card */}
-        <Card
-          style={{
-            marginBottom: 24,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <View
+        {user && (
+          <Card
             style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              backgroundColor: colors.primary,
-              justifyContent: "center",
+              marginBottom: 24,
+              flexDirection: "row",
               alignItems: "center",
+              gap: 12,
             }}
           >
-            <ThemedText
+            <View
               style={{
-                color: colors.background,
-                fontSize: 24,
-                fontWeight: "bold",
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: colors.primary,
+                justifyContent: "center",
+                alignItems: "center",
               }}
             >
-              J
-            </ThemedText>
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold" style={{ marginBottom: 2 }}>
-              João Silva
-            </ThemedText>
-            <ThemedText style={{ fontSize: 12, color: colors.muted }}>
-              joao@cleanpro.com
-            </ThemedText>
-            <ThemedText style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>
-              Administrador
-            </ThemedText>
-          </View>
-        </Card>
+              <ThemedText
+                style={{
+                  color: colors.background,
+                  fontSize: 24,
+                  fontWeight: "bold",
+                }}
+              >
+                {user?.name?.charAt(0).toUpperCase() || "U"}
+              </ThemedText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="defaultSemiBold" style={{ marginBottom: 2 }}>
+                {user?.name || "Usuário"}
+              </ThemedText>
+              <ThemedText style={{ fontSize: 12, color: colors.muted }}>
+                {user?.email || "sem email"}
+              </ThemedText>
+              <ThemedText style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>
+                Administrador
+              </ThemedText>
+            </View>
+          </Card>
+        )}
 
         {/* Theme Toggle */}
         <Card
@@ -168,7 +202,7 @@ export default function MoreScreen() {
               }}
             >
               <MaterialIcons
-                name={darkMode ? "dark-mode" : "light-mode"}
+                name={colorScheme === "dark" ? "dark-mode" : "light-mode"}
                 size={24}
                 color={colors.primary}
               />
@@ -176,13 +210,13 @@ export default function MoreScreen() {
             <View>
               <ThemedText type="defaultSemiBold">Modo Escuro</ThemedText>
               <ThemedText style={{ fontSize: 12, color: colors.muted }}>
-                {darkMode ? "Ativado" : "Desativado"}
+                {colorScheme === "dark" ? "Ativado" : "Desativado"}
               </ThemedText>
             </View>
           </View>
           <Switch
-            value={darkMode}
-            onValueChange={setDarkMode}
+            value={colorScheme === "dark"}
+            onValueChange={toggleTheme}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.background}
           />
@@ -206,21 +240,26 @@ export default function MoreScreen() {
               opacity: pressed ? 0.8 : 1,
             },
           ]}
-          onPress={() => {
-            // TODO: Implement logout
-          }}
+          onPress={handleLogout}
+          disabled={isLoggingOut}
         >
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <MaterialIcons name="logout" size={20} color={colors.background} />
-            <ThemedText
-              style={{
-                color: colors.background,
-                fontSize: 16,
-                fontWeight: "600",
-              }}
-            >
-              Sair
-            </ThemedText>
+            {isLoggingOut ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <>
+                <MaterialIcons name="logout" size={20} color={colors.background} />
+                <ThemedText
+                  style={{
+                    color: colors.background,
+                    fontSize: 16,
+                    fontWeight: "600",
+                  }}
+                >
+                  Sair
+                </ThemedText>
+              </>
+            )}
           </View>
         </Pressable>
       </ScrollView>

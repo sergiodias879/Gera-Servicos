@@ -35,7 +35,7 @@
 - [x] Barra de busca e filtros
 - [x] Botão para criar nova ordem
 - [ ] Tela de detalhes de ordem
-- [ ] Modal para criar/editar ordem
+- [x] Modal para criar/editar ordem
 
 ## Phase 6: Ordem Detail Screen
 - [ ] Exibição de informações completas
@@ -57,14 +57,14 @@
 - [x] Card de cliente com informações resumidas
 - [ ] Tela de detalhes do cliente
 - [ ] Histórico de serviços do cliente
-- [ ] Modal para adicionar/editar cliente
+- [x] Modal para adicionar/editar cliente
 
 ## Phase 9: Mais Screen
 - [x] Menu de opções (Perfil, Configurações, Relatórios, Logout)
-- [ ] Tela de perfil do usuário
-- [ ] Tela de configurações (tema, notificações, idioma)
+- [x] Tela de perfil do usuário (exibindo dados do usuário autenticado)
+- [x] Tela de configurações (tema dark/light mode)
 - [ ] Tela de relatórios
-- [ ] Logout funcionando
+- [x] Logout funcionando
 
 ## Phase 10: Database & Models
 - [x] Schema Drizzle para tabelas (users, clients, orders, schedules)

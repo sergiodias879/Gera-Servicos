@@ -1,66 +1,55 @@
-import { View, FlatList, TextInput, Pressable } from "react-native";
+import { View, FlatList, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { ThemedText } from "@/components/themed-text";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useColors } from "@/hooks/use-colors";
+import { useClients } from "@/hooks/use-clients";
+import { ClientModal } from "@/components/modals/client-modal";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useState } from "react";
-
-// Mock data
-const mockClients = [
-  {
-    id: "1",
-    name: "João Silva",
-    phone: "(11) 98765-4321",
-    email: "joao@email.com",
-    lastService: "26/12/2024",
-    totalServices: 12,
-  },
-  {
-    id: "2",
-    name: "Maria Santos",
-    phone: "(11) 98765-4322",
-    email: "maria@email.com",
-    lastService: "25/12/2024",
-    totalServices: 8,
-  },
-  {
-    id: "3",
-    name: "Pedro Costa",
-    phone: "(11) 98765-4323",
-    email: "pedro@email.com",
-    lastService: "24/12/2024",
-    totalServices: 15,
-  },
-  {
-    id: "4",
-    name: "Ana Oliveira",
-    phone: "(11) 98765-4324",
-    email: "ana@email.com",
-    lastService: "23/12/2024",
-    totalServices: 5,
-  },
-  {
-    id: "5",
-    name: "Carlos Mendes",
-    phone: "(11) 98765-4325",
-    email: "carlos@email.com",
-    lastService: "22/12/2024",
-    totalServices: 20,
-  },
-];
+import { useState, useMemo } from "react";
 
 export default function ClientsScreen() {
   const colors = useColors();
+  const { clients, isLoadingClients, createClient, updateClient, deleteClient, isCreating, isUpdating, isDeleting } = useClients();
   const [searchQuery, setSearchQuery] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
 
-  const filteredClients = mockClients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.phone.includes(searchQuery) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredClients = useMemo(() => {
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (client.phone && client.phone.includes(searchQuery)) ||
+        (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [clients, searchQuery]);
+
+  const handleCreateClient = async (data: any) => {
+    await createClient(data);
+  };
+
+  const handleUpdateClient = async (data: any) => {
+    if (selectedClient) {
+      await updateClient({ id: selectedClient.id, ...data });
+    }
+  };
+
+  const handleDeleteClient = async (clientId: number) => {
+    if (confirm("Tem certeza que deseja deletar este cliente?")) {
+      await deleteClient({ id: clientId });
+    }
+  };
+
+  const handleOpenModal = (client?: any) => {
+    setSelectedClient(client || null);
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedClient(null);
+  };
 
   const renderClientCard = (item: any) => (
     <Card style={{ marginBottom: 12 }}>
@@ -99,43 +88,57 @@ export default function ClientsScreen() {
               {item.name}
             </ThemedText>
             <ThemedText style={{ fontSize: 12, color: colors.muted }}>
-              {item.totalServices} serviços realizados
+              {item.email || "Sem email"}
             </ThemedText>
           </View>
+          <Pressable
+            onPress={() => handleDeleteClient(item.id)}
+            disabled={isDeleting}
+            style={{ padding: 8 }}
+          >
+            <MaterialIcons name="delete" size={20} color="#E74C3C" />
+          </Pressable>
         </View>
         <View style={{ flexDirection: "row", gap: 12, marginBottom: 8 }}>
-          <Pressable
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              flex: 1,
-            }}
-          >
-            <MaterialIcons name="phone" size={16} color={colors.primary} />
-            <ThemedText style={{ fontSize: 12, color: colors.primary }}>
-              {item.phone}
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              flex: 1,
-            }}
-          >
-            <MaterialIcons name="email" size={16} color={colors.primary} />
-            <ThemedText style={{ fontSize: 12, color: colors.primary }}>
-              Email
-            </ThemedText>
-          </Pressable>
+          {item.phone && (
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                flex: 1,
+              }}
+            >
+              <MaterialIcons name="phone" size={16} color={colors.primary} />
+              <ThemedText style={{ fontSize: 12, color: colors.primary }}>
+                {item.phone}
+              </ThemedText>
+            </Pressable>
+          )}
+          {item.email && (
+            <Pressable
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                flex: 1,
+              }}
+            >
+              <MaterialIcons name="email" size={16} color={colors.primary} />
+              <ThemedText style={{ fontSize: 12, color: colors.primary }}>
+                Email
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
-        <ThemedText style={{ fontSize: 11, color: colors.muted }}>
-          Último serviço: {item.lastService}
-        </ThemedText>
+        {item.address && (
+          <ThemedText style={{ fontSize: 11, color: colors.muted }}>
+            📍 {item.address}
+          </ThemedText>
+        )}
       </View>
       <Pressable
+        onPress={() => handleOpenModal(item)}
         style={({ pressed }) => [
           {
             paddingVertical: 8,
@@ -144,78 +147,94 @@ export default function ClientsScreen() {
         ]}
       >
         <ThemedText style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>
-          Ver Histórico →
+          Editar →
         </ThemedText>
       </Pressable>
     </Card>
   );
 
+  if (isLoadingClients) {
+    return (
+      <ScreenContainer className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary} />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer className="flex-1">
-      {/* Header */}
-      <View style={{ marginBottom: 16 }}>
-        <ThemedText type="title" style={{ marginBottom: 4 }}>
-          Clientes
-        </ThemedText>
-        <ThemedText style={{ color: colors.muted }}>
-          Gerenciar seus clientes
-        </ThemedText>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        {/* Header */}
+        <View style={{ marginBottom: 16 }}>
+          <ThemedText type="title" style={{ marginBottom: 4 }}>
+            Clientes
+          </ThemedText>
+          <ThemedText style={{ color: colors.muted }}>
+            {filteredClients.length} cliente{filteredClients.length !== 1 ? "s" : ""}
+          </ThemedText>
+        </View>
 
-      {/* Search Bar */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 16,
-          backgroundColor: colors.surface,
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          borderColor: colors.border,
-          borderWidth: 1,
-        }}
-      >
-        <MaterialIcons name="search" size={20} color={colors.muted} />
-        <TextInput
-          placeholder="Buscar por nome, telefone ou email"
-          placeholderTextColor={colors.muted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+        {/* Search Bar */}
+        <View
           style={{
-            flex: 1,
-            paddingVertical: 12,
-            paddingHorizontal: 8,
-            color: colors.foreground,
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 16,
+            backgroundColor: colors.surface,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            borderColor: colors.border,
+            borderWidth: 1,
           }}
-        />
-      </View>
+        >
+          <MaterialIcons name="search" size={20} color={colors.muted} />
+          <TextInput
+            placeholder="Buscar por nome, telefone ou email"
+            placeholderTextColor={colors.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              paddingHorizontal: 8,
+              color: colors.foreground,
+            }}
+          />
+        </View>
 
-      {/* New Client Button */}
-      <Button
-        variant="primary"
-        size="medium"
-        style={{ marginBottom: 16 }}
-        onPress={() => {
-          // TODO: Navigate to new client screen
-        }}
-      >
-        + Novo Cliente
-      </Button>
+        {/* New Client Button */}
+        <Button
+          variant="primary"
+          size="medium"
+          style={{ marginBottom: 16 }}
+          onPress={() => handleOpenModal()}
+          disabled={isCreating}
+        >
+          + Novo Cliente
+        </Button>
 
-      {/* Clients List */}
-      <FlatList
-        data={filteredClients}
-        renderItem={({ item }) => renderClientCard(item)}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        ListEmptyComponent={
+        {/* Clients List */}
+        {filteredClients.length > 0 ? (
+          filteredClients.map((client) => (
+            <View key={client.id}>{renderClientCard(client)}</View>
+          ))
+        ) : (
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
             <MaterialIcons name="people" size={48} color={colors.muted} />
             <ThemedText style={{ marginTop: 12, color: colors.muted }}>
-              Nenhum cliente encontrado
+              {searchQuery ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
             </ThemedText>
           </View>
-        }
+        )}
+      </ScrollView>
+
+      {/* Client Modal */}
+      <ClientModal
+        visible={modalVisible}
+        onClose={handleCloseModal}
+        onSave={selectedClient ? handleUpdateClient : handleCreateClient}
+        initialData={selectedClient}
+        isLoading={isCreating || isUpdating}
       />
     </ScreenContainer>
   );
