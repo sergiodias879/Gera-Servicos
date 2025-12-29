@@ -68,9 +68,9 @@
 
 ## Phase 10: Database & Models
 - [x] Schema Drizzle para tabelas (users, clients, orders, schedules)
-- [x] Migrations criadas
-- [ ] Relacionamentos entre tabelas
-- [ ] Índices para performance
+- [x] Migrations criadas e executadas no InfinityFree
+- [x] Relacionamentos entre tabelas
+- [x] Índices para performance
 
 ## Phase 11: API & Server
 - [x] TRPC endpoints para CRUD de ordens
@@ -100,7 +100,7 @@
 - [ ] Verificação de acessibilidade
 
 ## Phase 15: Delivery
-- [ ] Checkpoint final criado
-- [ ] Documentação atualizada
-- [ ] QR code para preview no Expo Go
-- [ ] Projeto entregue ao usuário
+- [x] Checkpoint final criado
+- [x] Documentação atualizada
+- [x] QR code para preview no Expo Go
+- [x] Projeto entregue ao usuário com banco de dados integrado

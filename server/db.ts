@@ -1,17 +1,47 @@
 import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users, clients, orders, orderItems, schedules, Client, InsertClient, Order, InsertOrder, OrderItem, InsertOrderItem, Schedule, InsertSchedule } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: any = null;
+
+// Create MySQL connection pool
+async function createPool() {
+  if (_pool) return _pool;
+  
+  try {
+    const pool = mysql.createPool({
+      host: process.env.DB_HOST || "sql308.infinityfree.com",
+      port: parseInt(process.env.DB_PORT || "3306"),
+      user: process.env.DB_USER || "ifo_40788079",
+      password: process.env.DB_PASSWORD || "PZ2UVYhOqzc",
+      database: process.env.DB_NAME || "ifo_40788079_db_servicos",
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
+    });
+    _pool = pool;
+    console.log("[Database] Connection pool created successfully");
+    return pool;
+  } catch (error) {
+    console.error("[Database] Failed to create pool:", error);
+    throw error;
+  }
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const pool = await createPool();
+      _db = drizzle(pool);
+      console.log("[Database] Drizzle instance created successfully");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to connect:", error);
       _db = null;
     }
   }
